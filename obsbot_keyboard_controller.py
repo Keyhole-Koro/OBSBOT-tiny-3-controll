@@ -100,8 +100,9 @@ class ObsbotController:
         if ret:
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"obsbot_photo_{timestamp}.jpg"
-            downloads_dir = os.path.expanduser("~\\Downloads")
-            filepath = os.path.join(downloads_dir, filename)
+            # スクリプトと同じディレクトリ（リポジトリ内）に保存する
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            filepath = os.path.join(current_dir, filename)
             
             cv2.imwrite(filepath, frame)
             print(f"【成功】写真をプログラム側で保存しました: {filepath}")

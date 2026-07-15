@@ -1,0 +1,12 @@
+# Python dependencies
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+env/
+.env
+
+# Ignored Images (Photos taken by the camera)
+obsbot_photo_*.jpg
+obsbot_photo_*.png
