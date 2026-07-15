@@ -3,7 +3,7 @@ import msvcrt
 import time
 from pythonosc.tcp_client import SimpleTCPClient
 
-# WindowsでUTF-8出力がエラーになるのを防ぐ
+# Prevent UTF-8 output errors on Windows
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding='utf-8')
@@ -13,7 +13,7 @@ if sys.platform == "win32":
 import os
 
 def detect_ip():
-    # WSL環境の場合は、WindowsホストのIPアドレスを取得する
+    # If in WSL environment, get the Windows host IP address
     if os.path.exists('/proc/version'):
         try:
             with open('/proc/version', 'r') as f:
@@ -22,7 +22,7 @@ def detect_ip():
                         for line in resolv:
                             if line.strip().startswith('nameserver'):
                                 host_ip = line.split()[1].strip()
-                                print(f"WSL環境を検出しました。WindowsホストIP: {host_ip} を使用します。")
+                                print(f"WSL environment detected. Using Windows host IP: {host_ip}")
                                 return host_ip
         except Exception:
             pass
@@ -41,58 +41,58 @@ class ObsbotController:
         print(f"Initialized OBSBOT Controller - IP: {self.ip}, Port: {self.port}, Device Index: {self.device_index}")
 
     def send(self, address: str, *arguments) -> None:
-        """OBSBOT CenterへOSCメッセージを送信する"""
+        """Send OSC message to OBSBOT Center"""
         self.client.send_message(address, list(arguments))
 
     def wake(self):
-        """カメラを起動"""
+        """Wake camera"""
         self.send("/OBSBOT/WebCam/General/WakeSleep", self.device_index, 1)
 
     def sleep(self):
-        """カメラをスリープ"""
+        """Sleep camera"""
         self.send("/OBSBOT/WebCam/General/WakeSleep", self.device_index, 0)
 
     def reset_gimbal(self):
-        """ジンバルを中央へ戻す"""
+        """Reset gimbal to center"""
         self.send("/OBSBOT/WebCam/General/ResetGimbal", self.device_index, 0)
 
     def set_zoom(self, zoom_level: int):
-        """ズームを設定 (0〜100)"""
+        """Set zoom (0 to 100)"""
         self.send("/OBSBOT/WebCam/General/SetZoom", self.device_index, zoom_level)
 
     def set_ai_mode(self, mode: int):
-        """AIモードを設定 (0:人物単独, 1:人物グループ, 2:音声, 3:デスク, 4:ハンド, 5:ホワイトボード)"""
+        """Set AI mode (0: Single Person, 1: Group, 2: Audio, 3: Desk, 4: Hand, 5: Whiteboard)"""
         self.send("/OBSBOT/WebCam/Tiny/SetAiMode", self.device_index, mode)
 
     def toggle_ai_lock(self, lock: bool):
-        """AI対象をロック/解除"""
+        """Lock/unlock AI target"""
         val = 1 if lock else 0
         self.send("/OBSBOT/WebCam/Tiny/ToggleAILock", self.device_index, val)
 
     def set_gimbal_degree(self, speed: float, pan: float, tilt: float):
-        """角度を指定して移動 (パン: -150〜150度, チルト: -90〜90度)"""
-        # OBSBOT CenterはOSCの引数として整数(int)を要求するためキャストします
+        """Move gimbal by specified angle (Pan: -150 to 150, Tilt: -90 to 90)"""
+        # OBSBOT Center requires integers (int) for OSC arguments, so we cast them
         self.send("/OBSBOT/WebCam/General/SetGimMotorDegree", self.device_index, int(speed), int(pan), int(tilt))
 
     def take_snapshot(self):
-        """Pythonプログラム自身でカメラから映像を取得し、写真を保存する"""
+        """Capture image from the camera and save it within the Python program"""
         import cv2
         import datetime
         import os
         
-        print("\nカメラから画像を取得中...")
-        # DirectShowを使用してカメラを開く（Windows向け）
+        print("\nCapturing image from the camera...")
+        # Open camera using DirectShow (for Windows)
         cap = cv2.VideoCapture(self.device_index, cv2.CAP_DSHOW)
         
         if not cap.isOpened():
-            # 通常の方法でフォールバック
+            # Fallback to the standard method
             cap = cv2.VideoCapture(self.device_index)
             
         if not cap.isOpened():
-            print("【エラー】カメラを開けませんでした。他のアプリ（カメラアプリ等）がカメラを使用中の可能性があります。")
+            print("[Error] Failed to open camera. It might be in use by another application (like the Camera app).")
             return
 
-        # 露出やオートフォーカスを安定させるため数フレーム読み飛ばす
+        # Skip a few frames to stabilize exposure and autofocus
         for _ in range(5):
             cap.read()
 
@@ -100,59 +100,59 @@ class ObsbotController:
         if ret:
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"obsbot_photo_{timestamp}.jpg"
-            # スクリプトと同じディレクトリ（リポジトリ内）に保存する
+            # Save in the same directory as the script (within the repository)
             current_dir = os.path.dirname(os.path.abspath(__file__))
             filepath = os.path.join(current_dir, filename)
             
             cv2.imwrite(filepath, frame)
-            print(f"【成功】写真をプログラム側で保存しました: {filepath}")
+            print(f"[Success] Photo saved successfully by the program: {filepath}")
         else:
-            print("【エラー】画像を取得できませんでした。")
+            print("[Error] Failed to grab frame.")
             
         cap.release()
 
 def print_menu(pan, tilt, zoom, tracking):
-    print("\033[H\033[J", end="") # 画面クリア
+    print("\033[H\033[J", end="") # Clear screen
     print("==================================================")
-    print("      OBSBOT キーボード コントローラー (16284ポート)")
+    print("      OBSBOT Keyboard Controller (Port 16284)")
     print("==================================================")
-    print(f"  [現在のステータス]")
-    print(f"    ・パン(左右)  : {pan:+.1f} 度 (A/Dキーで操作)")
-    print(f"    ・チルト(上下): {tilt:+.1f} 度 (W/Sキーで操作)")
-    print(f"    ・ズーム      : {zoom}% (I/Oキーで操作)")
-    print(f"    ・追跡ロック  : {'ON' if tracking else 'OFF'} (Tキーでトグル)")
+    print(f"  [Current Status]")
+    print(f"    - Pan (L/R) : {pan:+.1f} degrees (A/D keys)")
+    print(f"    - Tilt (U/D): {tilt:+.1f} degrees (W/S keys)")
+    print(f"    - Zoom      : {zoom}% (I/O keys)")
+    print(f"    - Tracking  : {'ON' if tracking else 'OFF'} (T key to toggle)")
     print("--------------------------------------------------")
-    print("  [操作キー一覧]")
-    print("    W : 上に傾ける (チルト +5)")
-    print("    S : 下に傾ける (チルト -5)")
-    print("    A : 左に向ける (パン +10)")
-    print("    D : 右に向ける (パン -10)")
-    print("    I : ズームイン (+10%)")
-    print("    O : ズームアウト (-10%)")
-    print("    R : 首振りとズームをリセット")
-    print("    T : 追跡(トラッキング)のON/OFF切り替え")
-    print("    P : 写真（スナップショット）撮影")
-    print("    Q : 終了")
+    print("  [Controls]")
+    print("    W : Tilt up (-5)")
+    print("    S : Tilt down (+5)")
+    print("    A : Pan left (+10)")
+    print("    D : Pan right (-10)")
+    print("    I : Zoom in (+10%)")
+    print("    O : Zoom out (-10%)")
+    print("    R : Reset gimbal and zoom")
+    print("    T : Toggle AI tracking ON/OFF")
+    print("    P : Take snapshot (Photo)")
+    print("    Q : Quit")
     print("==================================================")
-    print("操作したいキーを押してください...")
+    print("Press a key to control...")
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="OBSBOT Keyboard Controller")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="OBSBOT Centerの受信ポート")
-    parser.add_argument("--ip", type=str, default=DEFAULT_IP, help="OBSBOT CenterのIPアドレス")
-    parser.add_argument("--device", type=int, default=DEFAULT_DEVICE_INDEX, help="デバイス番号 (1台目なら0)")
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="OBSBOT Center receive port")
+    parser.add_argument("--ip", type=str, default=DEFAULT_IP, help="OBSBOT Center IP address")
+    parser.add_argument("--device", type=int, default=DEFAULT_DEVICE_INDEX, help="Device index (0 for first camera)")
     args = parser.parse_args()
 
     controller = ObsbotController(ip=args.ip, port=args.port, device_index=args.device)
     
-    # 初期状態
+    # Initial state
     current_pan = 0.0
     current_tilt = 0.0
     current_zoom = 0
     tracking_enabled = False
     
-    # 起動時の初期化
+    # Initialization on startup
     controller.wake()
     controller.reset_gimbal()
     controller.set_zoom(0)
@@ -161,18 +161,18 @@ def main():
     while True:
         print_menu(current_pan, current_tilt, current_zoom, tracking_enabled)
         
-        # キー入力を待機 (msvcrtによりEnter不要で即時判定)
+        # Wait for key press (msvcrt gets key immediately without Enter)
         char = msvcrt.getch().decode('utf-8', errors='ignore').lower()
         
         if char == 'q':
-            print("プログラムを終了します...")
+            print("Exiting program...")
             break
         elif char == 'w':
-            # カメラを上に向けるにはマイナスの角度にする必要があるためマイナス方向にします
+            # Tilt up requires negative angle
             current_tilt = max(-90.0, current_tilt - 5.0)
             controller.set_gimbal_degree(50.0, current_pan, current_tilt)
         elif char == 's':
-            # カメラを下に向けるにはプラスの角度にする必要があるためプラス方向にします
+            # Tilt down requires positive angle
             current_tilt = min(90.0, current_tilt + 5.0)
             controller.set_gimbal_degree(50.0, current_pan, current_tilt)
         elif char == 'a':
@@ -196,12 +196,12 @@ def main():
         elif char == 't':
             tracking_enabled = not tracking_enabled
             if tracking_enabled:
-                controller.set_ai_mode(0) # 人物単独
+                controller.set_ai_mode(0) # Single person
                 time.sleep(0.1)
             controller.toggle_ai_lock(tracking_enabled)
         elif char == 'p':
             controller.take_snapshot()
-            print("写真を撮影しました！")
+            print("Photo taken!")
             time.sleep(0.5)
             
         time.sleep(0.05)
