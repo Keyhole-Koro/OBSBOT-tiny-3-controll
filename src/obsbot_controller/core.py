@@ -24,27 +24,36 @@ class ObsbotController:
         """Reset gimbal to center"""
         self.send("/OBSBOT/WebCam/General/ResetGimbal", self.device_index, 0)
 
-    def set_zoom(self, zoom_level: int):
+    def set_zoom(self, zoom_level):
         """Set zoom (0 to 100)"""
-        self.send("/OBSBOT/WebCam/General/SetZoom", self.device_index, zoom_level)
+        # Robust cast for LLM input
+        self.send("/OBSBOT/WebCam/General/SetZoom", self.device_index, int(float(zoom_level)))
 
-    def set_ai_mode(self, mode: int):
+    def set_ai_mode(self, mode):
         """Set AI mode (0: Single Person, 1: Group, 2: Audio, 3: Desk, 4: Hand, 5: Whiteboard)"""
-        self.send("/OBSBOT/WebCam/Tiny/SetAiMode", self.device_index, mode)
+        self.send("/OBSBOT/WebCam/Tiny/SetAiMode", self.device_index, int(float(mode)))
 
-    def toggle_ai_lock(self, lock: bool):
+    def toggle_ai_lock(self, lock):
         """Lock/unlock AI target"""
-        val = 1 if lock else 0
+        # Handle cases where LLM sends "true", "True", "1", etc.
+        if isinstance(lock, str):
+            val = 1 if lock.lower() in ['true', '1', 't', 'y', 'yes'] else 0
+        else:
+            val = 1 if lock else 0
         self.send("/OBSBOT/WebCam/Tiny/ToggleAILock", self.device_index, val)
 
-    def set_gimbal_degree(self, speed: float, pan: float, tilt: float):
+    def set_gimbal_degree(self, speed, pan, tilt):
         """Move gimbal by specified angle (Pan: -150 to 150, Tilt: -90 to 90)"""
-        # OBSBOT Center requires integers (int) for OSC arguments, so we cast them
-        self.send("/OBSBOT/WebCam/General/SetGimMotorDegree", self.device_index, int(speed), int(pan), int(tilt))
+        # AI/LLMs might send strings like "50.5" or floats. We robustly cast to int.
+        self.send("/OBSBOT/WebCam/General/SetGimMotorDegree", 
+                  self.device_index, 
+                  int(float(speed)), 
+                  int(float(pan)), 
+                  int(float(tilt)))
 
-    def trigger_preset(self, preset_index: int):
+    def trigger_preset(self, preset_index):
         """Trigger preset (0~)"""
-        self.send("/OBSBOT/WebCam/Tiny/TriggerPreset", self.device_index, preset_index)
+        self.send("/OBSBOT/WebCam/Tiny/TriggerPreset", self.device_index, int(float(preset_index)))
 
     def take_snapshot(self):
         """Capture image from the camera and save it within the Python program"""
