@@ -1,6 +1,11 @@
 import sys
+import os
 import argparse
 from mcp.server.fastmcp import FastMCP
+
+# Add src to python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+
 from obsbot_controller import ObsbotController, DEFAULT_IP, DEFAULT_PORT, DEFAULT_DEVICE_INDEX
 
 mcp = FastMCP("OBSBOT Tiny 3 Controller")
@@ -60,8 +65,6 @@ def take_snapshot() -> str:
 
 def main():
     global controller
-    # Only parse args if they are passed, otherwise use defaults
-    # MCP hosts might pass additional unknown arguments, so we use parse_known_args
     parser = argparse.ArgumentParser(description="OBSBOT Tiny 3 MCP Server")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="OBSBOT Center receive port")
     parser.add_argument("--ip", type=str, default=DEFAULT_IP, help="OBSBOT Center IP address")
@@ -69,8 +72,6 @@ def main():
     args, _ = parser.parse_known_args()
 
     controller = ObsbotController(ip=args.ip, port=args.port, device_index=args.device)
-    
-    # FastMCP uses stdio by default when mcp.run() is called
     mcp.run()
 
 if __name__ == "__main__":

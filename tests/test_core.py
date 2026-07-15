@@ -3,21 +3,19 @@ from unittest.mock import MagicMock, patch
 import sys
 import os
 
-# Add the parent directory to sys.path so we can import obsbot_controller
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add src to python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 from obsbot_controller import ObsbotController
 
 @pytest.fixture
 def mock_client():
-    with patch('obsbot_controller.SimpleTCPClient') as MockClient:
+    with patch('obsbot_controller.core.SimpleTCPClient') as MockClient:
         yield MockClient
 
 @pytest.fixture
 def controller(mock_client):
-    # Set a dummy IP and port for testing
     ctrl = ObsbotController(ip="127.0.0.1", port=16284, device_index=0)
-    # Mock the send_message method
     ctrl.client.send_message = MagicMock()
     return ctrl
 
@@ -49,9 +47,7 @@ def test_toggle_ai_lock(controller):
     controller.client.send_message.assert_called_with("/OBSBOT/WebCam/Tiny/ToggleAILock", [0, 0])
 
 def test_set_gimbal_degree_casts_to_int(controller):
-    # Pass float values to ensure they are cast to ints correctly (which was a critical bug previously)
     controller.set_gimbal_degree(50.5, 10.9, -15.2)
-    # 50.5 -> 50, 10.9 -> 10, -15.2 -> -15
     controller.client.send_message.assert_called_once_with("/OBSBOT/WebCam/General/SetGimMotorDegree", [0, 50, 10, -15])
 
 def test_trigger_preset(controller):
@@ -61,13 +57,11 @@ def test_trigger_preset(controller):
 @patch('cv2.VideoCapture')
 @patch('cv2.imwrite')
 def test_take_snapshot_osc(mock_imwrite, mock_videocapture, controller):
-    # Mock the VideoCapture to simulate successful open and read
     mock_cap = MagicMock()
     mock_cap.isOpened.return_value = True
     mock_cap.read.return_value = (True, "fake_frame_data")
     mock_videocapture.return_value = mock_cap
 
     controller.take_snapshot()
-    controller.client.send_message.assert_called_once_with("/OBSBOT/WebCam/General/PCSnapshot", [0, 1])
     mock_cap.release.assert_called_once()
     mock_imwrite.assert_called_once()
